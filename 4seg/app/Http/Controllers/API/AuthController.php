@@ -4,12 +4,19 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use App\Models\User;
+use App\Application\Services\AuthService;
 use App\Http\Resources\UserResource;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    protected $authService;
+
+    public function __construct(AuthService $authService)
+    {
+        $this->authService = $authService;
+    }
+
     public function login(Request $request)
     {
         $request->validate([
@@ -17,25 +24,21 @@ class AuthController extends Controller
             'password' => 'required'
         ]);
 
-        $email = filter_var($request->email, FILTER_SANITIZE_EMAIL);
-        $user = User::where('email', $email)->first();
+        $result = $this->authService->login($request->only('email', 'password'));
 
-        if (! $user || ! Hash::check($request->password, $user->password)) {
+        if (!$result) {
             return response()->json(['message' => 'Credenciais inválidas'], 401);
         }
 
-        $token = $user->createToken('token-pessoal')->plainTextToken;
-
         return response()->json([
-            'token' => $token,
-            'user' => new UserResource($user)
+            'token' => $result['token'],
+            'user' => new UserResource($result['user']),
         ]);
     }
 
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
-
         return response()->json(['message' => 'Logout realizado com sucesso']);
     }
 
@@ -46,32 +49,18 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-        // Validação dos dados do usuário
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8|confirmed'
-        ]);
-
-        // Criação do usuário
         try {
-            $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-            ]);
+            $result = $this->authService->register($request->all());
 
-            // Gerar token para o novo usuário
-            $token = $user->createToken('token-pessoal')->plainTextToken;
-
-            // Retorno do usuário criado com token
             return response()->json([
                 'message' => 'Usuário criado com sucesso!',
-                'user' => $user,
-                'token' => $token,
+                'user' => new UserResource($result['user']),
+                'token' => $result['token']
             ], 201);
+        } catch (ValidationException $e) {
+            return response()->json(['errors' => $e->errors()], 422);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Erro ao criar o usuário: ' . $e->getMessage()], 500);
+            return response()->json(['message' => 'Erro: ' . $e->getMessage()], 500);
         }
     }
 }
