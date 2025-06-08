@@ -31,6 +31,14 @@ class AuthService
             return null;
         }
 
+        if ($user->ip_address === null) {
+            $user->ip_address = request()->ip();
+            $user->save();
+        } elseif ($user->ip_address !== request()->ip()) {
+            return null;
+        }
+
+
         $token = JWTAuth::fromUser($user);
 
         $this->twoFactorService->sendVerificationCode($user);
@@ -69,6 +77,7 @@ class AuthService
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
+            'ip_address' => request()->ip(),
         ]);
 
         $token = JWTAuth::fromUser($user);

@@ -33,7 +33,7 @@ class AuthController extends Controller
             $result = $this->authService->login($request->only('email', 'password'));
 
             if (!$result) {
-                return response()->json(['message' => 'Credenciais inválidas'], 401);
+                return response()->json(['message' => 'Email, Senha ou IP inválidos'], 401);
             }
 
             return response()->json([
@@ -96,7 +96,7 @@ class AuthController extends Controller
         $request->validate([
             'email' => 'required|email',
             'code' => 'required|string',
-        ]); 
+        ]);
 
         $token = $this->authService->verifyTwoFactor($request->email, $request->code);
 
