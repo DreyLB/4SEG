@@ -6,6 +6,7 @@ use App\Domain\User\Repositories\UserRepositoryInterface;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use Tymon\JWTAuth\Facades\JWTAuth;
 use App\Models\User;
 
 class AuthService
@@ -26,7 +27,8 @@ class AuthService
             return null;
         }
 
-        $token = $user->createToken('token-pessoal')->plainTextToken;
+        // Gera o token JWT
+        $token = JWTAuth::fromUser($user);
 
         return [
             'user' => $user,
@@ -39,7 +41,16 @@ class AuthService
         $validator = Validator::make($data, [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'confirmed',
+                'regex:/[a-z]/',      
+                'regex:/[A-Z]/',      
+                'regex:/[0-9]/',      
+                'regex:/[@$!%*#?&]/', 
+            ],
         ]);
 
         if ($validator->fails()) {
@@ -52,7 +63,7 @@ class AuthService
             'password' => Hash::make($data['password']),
         ]);
 
-        $token = $user->createToken('token-pessoal')->plainTextToken;
+        $token = JWTAuth::fromUser($user);
 
         return [
             'user' => $user,
