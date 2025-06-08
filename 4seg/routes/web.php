@@ -10,8 +10,8 @@ Route::get('/', function () {
 
 
 
-Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');  // mostra o formulário
-Route::post('/login', [AuthController::class, 'login']);                       // processa o formulário
+Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');  
+Route::post('/login', [AuthController::class, 'login']);                       
 
 Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
 Route::post('/register', [AuthController::class, 'register']);

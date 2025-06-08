@@ -63,8 +63,6 @@ class AuthController extends Controller
         try {
             $result = $this->authService->register($request->all());
 
-            print_r($result);
-
             return response()->json([
                 'message' => 'Usuário criado com sucesso!',
                 'user' => new UserResource($result['user']),
