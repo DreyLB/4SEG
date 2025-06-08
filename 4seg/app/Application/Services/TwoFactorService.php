@@ -4,30 +4,37 @@ namespace App\Application\Services;
 
 use Illuminate\Support\Facades\Mail;
 use App\Mail\VerificationCodeMail;
-use App\Domain\User\ValueObjects\VerificationCode; 
+use App\Domain\User\ValueObjects\VerificationCode;
+use App\Models\User;
 
 class TwoFactorService
 {
-  public function sendVerificationCode(string $email): string
+  
+  public function sendVerificationCode(User $user): string
   {
     $code = VerificationCode::generate();
 
-    session([
-      '2fa_email' => $email,
-      '2fa_code' => $code,
-      '2fa_expires_at' => now()->addMinutes(10),
-    ]);
+    $user->two_factor_secret = $code;
+    $user->two_factor_expires_at = now()->addMinutes(10);
+    $user->save();
 
 
-    Mail::to($email)->send(new VerificationCodeMail($code));
+    Mail::to($user->email)->send(new VerificationCodeMail($code));
 
     return $code;
   }
 
-  public function verifyCode(string $email, string $code): bool
+  public function verifyCode(User $user, string $code): bool
   {
-    return session('2fa_email') === $email
-      && session('2fa_code') === $code
-      && now()->lessThan(session('2fa_expires_at'));
+    return $user->two_factor_secret === $code
+      && $user->two_factor_expires_at
+      && now()->lessThanOrEqualTo($user->two_factor_expires_at);
+  }
+
+  public function clearTwoFactorCode(User $user): void
+  {
+    $user->two_factor_secret = null;
+    $user->two_factor_expires_at = null;
+    $user->save();
   }
 }
