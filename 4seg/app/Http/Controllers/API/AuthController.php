@@ -8,6 +8,7 @@ use App\Application\Services\AuthService;
 use App\Http\Resources\UserResource;
 use Illuminate\Validation\ValidationException;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use App\Application\Services\TwoFactorService;
 
 class AuthController extends Controller
 {
@@ -33,15 +34,15 @@ class AuthController extends Controller
             }
 
             return response()->json([
-                'token' => $result['token'],
+                'message' => 'Código de verificação enviado para o e-mail.',
                 'user' => new UserResource($result['user']),
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => true,
-                'message' => $e->getMessage(), // Mensagem do erro
-                'line' => $e->getLine(),       // Linha do erro
-                'file' => $e->getFile(),       // Arquivo do erro
+                'message' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
             ], 500);
         }
     }
@@ -73,6 +74,23 @@ class AuthController extends Controller
         } catch (\Exception $e) {
             return response()->json(['message' => 'Erro: ' . $e->getMessage()], 500);
         }
+    }
+
+    public function verifyCode(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'code' => 'required|string',
+        ]);
+
+        if ($this->authService->verifyCode($request->email, $request->code)) {
+            return response()->json([
+                'token' => session('jwt_token'),
+                'message' => 'Autenticação concluída com sucesso!'
+            ]);
+        }
+
+        return response()->json(['message' => 'Código inválido ou expirado.'], 401);
     }
 
     // Criados para viasualizar o frontend rapidamente

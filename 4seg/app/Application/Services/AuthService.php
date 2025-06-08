@@ -12,10 +12,12 @@ use App\Models\User;
 class AuthService
 {
     protected $userRepository;
+    protected $twoFactorService;
 
-    public function __construct(UserRepositoryInterface $userRepository)
+    public function __construct(UserRepositoryInterface $userRepository, TwoFactorService $twoFactorService)
     {
         $this->userRepository = $userRepository;
+        $this->twoFactorService = $twoFactorService;
     }
 
     public function login(array $credentials): ?array
@@ -29,6 +31,11 @@ class AuthService
 
         // Gera o token JWT
         $token = JWTAuth::fromUser($user);
+        session(['jwt_token' => $token]);
+
+        $this->twoFactorService->sendVerificationCode($user->email);
+
+
 
         return [
             'user' => $user,
@@ -46,10 +53,10 @@ class AuthService
                 'string',
                 'min:8',
                 'confirmed',
-                'regex:/[a-z]/',      
-                'regex:/[A-Z]/',      
-                'regex:/[0-9]/',      
-                'regex:/[@$!%*#?&]/', 
+                'regex:/[a-z]/',
+                'regex:/[A-Z]/',
+                'regex:/[0-9]/',
+                'regex:/[@$!%*#?&]/',
             ],
         ]);
 
@@ -69,5 +76,10 @@ class AuthService
             'user' => $user,
             'token' => $token
         ];
+    }
+
+    public function verifyCode(string $email, string $code): bool
+    {
+        return $this->twoFactorService->verifyCode($email, $code);
     }
 }
