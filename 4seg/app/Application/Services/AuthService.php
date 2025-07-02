@@ -34,11 +34,12 @@ class AuthService
         if ($user->ip_address === null) {
             $user->ip_address = request()->ip();
             $user->save();
-        } elseif ($user->ip_address !== request()->ip()) {
+        } 
+        /* elseif ($user->ip_address !== request()->ip()) {
+            //Adicionar log informando de qual ip está vindo
             return null;
-        }
-
-
+        } */
+ 
         $token = JWTAuth::fromUser($user);
 
         $this->twoFactorService->sendVerificationCode($user);
@@ -101,12 +102,12 @@ class AuthService
         $user = $this->userRepository->findByEmail($email);
 
         if (!$user) {
-            print_r('Entrou aqui user');
+            /* print_r('Entrou aqui user'); */
             return null;
         }
 
         if (!$this->twoFactorService->verifyCode($user, $code)) {
-            print_r('Entrou aqui twoFactorService ' . $this->twoFactorService->verifyCode($user, $code));
+            /* print_r('Entrou aqui twoFactorService ' . $this->twoFactorService->verifyCode($user, $code)); */
             return null;
         }
 

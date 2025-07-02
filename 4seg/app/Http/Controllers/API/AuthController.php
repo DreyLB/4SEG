@@ -9,6 +9,7 @@ use App\Http\Resources\UserResource;
 use Illuminate\Validation\ValidationException;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use App\Application\Services\TwoFactorService;
+use Illuminate\Support\Facades\Log;
 
 
 class AuthController extends Controller
@@ -31,17 +32,20 @@ class AuthController extends Controller
             ]);
 
             $result = $this->authService->login($request->only('email', 'password'));
+            Log::info("IP do usuário: " . request()->ip());
 
             if (!$result) {
+                Log::warning('Falha no login', ['email' => $request->email, 'ip' => $request->ip()]);
                 return response()->json(['message' => 'Email, Senha ou IP inválidos'], 401);
             }
-
+            Log::info('Login realizado com sucesso', [new UserResource($result['user'])]);
             return response()->json([
                 /* 'token' => $result['token'], */
                 'user' => new UserResource($result['user']),
                 'two_factor_required' => $result['2fa_required'] ?? false,
             ]);
         } catch (\Exception $e) {
+            Log::info('Tentativa de login', ['email' => $request->email, 'ip' => $request->ip()]);
             return response()->json([
                 'error' => true,
                 'message' => $e->getMessage(),
@@ -55,7 +59,7 @@ class AuthController extends Controller
     {
         try {
             $user = JWTAuth::parseToken()->authenticate();
-
+            Log::info('Usuário realizando logout', ['user_id' => $user->id ?? null]);
             if ($user) {
                 $this->twoFactorService->clearTwoFactorCode($user);
             }
@@ -78,7 +82,8 @@ class AuthController extends Controller
     {
         try {
             $result = $this->authService->register($request->all());
-
+            Log::info('Tentativa de registro', ['email' => $request->email]);
+            Log::info('Usuário registrado com sucesso', ['user_id' => $result['user']->id]);
             return response()->json([
                 'message' => 'Usuário criado com sucesso!',
                 'user' => new UserResource($result['user']),
@@ -97,24 +102,16 @@ class AuthController extends Controller
             'email' => 'required|email',
             'code' => 'required|string',
         ]);
+        Log::info('Verificando código 2FA', ['email' => $request->email]);
 
         $token = $this->authService->verifyTwoFactor($request->email, $request->code);
 
         if (!$token) {
+            Log::warning('Falha na verificação 2FA', ['email' => $request->email]);
             return response()->json(['message' => 'Código inválido ou expirado.'], 401);
         }
 
+        Log::info('2FA confirmado com sucesso', ['email' => $request->email]);
         return response()->json(['token' => $token, 'message' => '2FA confirmado com sucesso']);
-    }
-
-    // Criados para viasualizar o frontend rapidamente
-    public function showLoginForm()
-    {
-        return view('auth.login');
-    }
-
-    public function showRegisterForm()
-    {
-        return view('auth.register');
     }
 }
