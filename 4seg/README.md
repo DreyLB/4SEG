@@ -1,66 +1,129 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# API de Autenticação Segura com Laravel
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Este projeto é uma API de autenticação desenvolvida em Laravel seguindo boas práticas de segurança, arquitetura DDD e com suporte a autenticação JWT e verificação em dois fatores (2FA).
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 🚀 Funcionalidades
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+-   Registro de usuários com validação forte de senha
+-   Login com JWT
+-   Verificação de código 2FA
+-   Logout
+-   Middleware de throttle para prevenir ataques de força bruta
+-   Armazenamento do IP do usuário
+-   Arquitetura baseada em serviços e repositórios
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## 🛠️ Tecnologias Utilizadas
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+-   PHP 8+
+-   Laravel 10
+-   JWT via [tymon/jwt-auth](https://github.com/tymondesigns/jwt-auth)
+-   Arquitetura DDD
+-   Validação com Laravel Validator
+-   2FA manual via código (básico)
+-   Throttle (proteção contra força bruta)
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+---
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## 📁 Estrutura do Projeto
 
-## Laravel Sponsors
+app/
+├── Application/
+│ └── Services/
+│ └── AuthService.php
+├── Domain/
+│ └── User/
+│ └── Repositories/
+│ └── UserRepositoryInterface.php
+├── Infrastructure/
+│ └── Repositories/
+│ └── UserRepository.php
+├── Http/
+│ └── Controllers/
+│ └── API/
+│ └── AuthController.php
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+---
 
-### Premium Partners
+## 📌 Requisitos
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+-   PHP >= 8.1
+-   Composer
+-   MySQL ou PostgreSQL
+-   Laravel 10
 
-## Contributing
+---
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## ⚙️ Instalação
 
-## Code of Conduct
+```bash
+git clone https://github.com/seu-usuario/nome-do-repo.git
+cd nome-do-repo
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+🔐 Rotas da API
 
-## Security Vulnerabilities
+| Método | Rota           | Descrição                            | Middleware     |
+| ------ | -------------- | ------------------------------------ | -------------- |
+| POST   | `/register`    | Registra novo usuário                | `throttle:5,1` |
+| POST   | `/login`       | Login com email e senha              | `throttle:5,1` |
+| POST   | `/verify-code` | Verifica código 2FA                  | -              |
+| GET    | `/user`        | Retorna dados do usuário autenticado | `auth:api`     |
+| POST   | `/logout`      | Logout do usuário                    | `auth:api`     |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
 
-## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+✅ Validação do Registro
+name: obrigatório, texto, máximo 255 caracteres
+
+email: obrigatório, válido e único
+
+password: obrigatório, mínimo 8 caracteres e deve conter:
+
+Uma letra maiúscula
+
+Uma letra minúscula
+
+Um número
+
+Um caractere especial
+
+password_confirmation: deve coincidir com a senha
+
+
+🛡️ Segurança
+SQL Injection: protegido por Eloquent e validação
+
+Força Bruta: protegido com middleware throttle
+
+JWT Token: usado para autenticação de rotas protegidas
+
+2FA: verificação adicional por código manual
+
+IP Tracking: IP do usuário salvo no cadastro
+
+🧪 Testes
+Você pode usar ferramentas como Postman ou Insomnia para testar a API.
+
+Exemplo de Payload para /register
+
+{
+  "name": "Andrey Barros",
+  "email": "4seg12@tav5.com",
+  "password": "SenhaSegura123!",
+  "password_confirmation": "SenhaSegura123!"
+}
+
+
+👨‍💻 Autor
+Andrey Barros
+https://www.linkedin.com/in/andrey-barros-243114201/
+Desenvolvedor Backend | Estudante de ADS | Apaixonado por segurança e boas práticas
+
+```

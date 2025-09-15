@@ -10,6 +10,7 @@ use Illuminate\Validation\ValidationException;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use App\Application\Services\TwoFactorService;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 
 
 class AuthController extends Controller
@@ -32,25 +33,34 @@ class AuthController extends Controller
             ]);
 
             $result = $this->authService->login($request->only('email', 'password'));
-            Log::info("IP do usuário: " . request()->ip());
+
+            Log::info('IP do usuário: ' . $request->ip());
 
             if (!$result) {
                 Log::warning('Falha no login', ['email' => $request->email, 'ip' => $request->ip()]);
                 return response()->json(['message' => 'Email, Senha ou IP inválidos'], 401);
             }
-            Log::info('Login realizado com sucesso', [new UserResource($result['user'])]);
+
+            Log::info('Login realizado com sucesso', ['user_id' => $result['user']->id ?? null]);
+
             return response()->json([
-                /* 'token' => $result['token'], */
                 'user' => new UserResource($result['user']),
                 'two_factor_required' => $result['2fa_required'] ?? false,
             ]);
+        } catch (ThrottleRequestsException $e) {
+            Log::warning('Limite de login excedido', ['email' => $request->email, 'ip' => $request->ip()]);
+            return response()->json([
+                'message' => 'Você realizou muitas tentativas. Aguarde e tente novamente em instantes.'
+            ], 429);
         } catch (\Exception $e) {
-            Log::info('Tentativa de login', ['email' => $request->email, 'ip' => $request->ip()]);
+            Log::error('Erro no login', [
+                'email' => $request->email,
+                'ip' => $request->ip(),
+                'message' => $e->getMessage()
+            ]);
             return response()->json([
                 'error' => true,
-                'message' => $e->getMessage(),
-                'line' => $e->getLine(),
-                'file' => $e->getFile(),
+                'message' => $e->getMessage()
             ], 500);
         }
     }
@@ -82,16 +92,28 @@ class AuthController extends Controller
     {
         try {
             $result = $this->authService->register($request->all());
-            Log::info('Tentativa de registro', ['email' => $request->email]);
+
+            Log::info('Tentativa de registro', ['email' => $request->email, 'ip' => $request->ip()]);
             Log::info('Usuário registrado com sucesso', ['user_id' => $result['user']->id]);
+
             return response()->json([
                 'message' => 'Usuário criado com sucesso!',
                 'user' => new UserResource($result['user']),
                 'token' => $result['token']
             ], 201);
+        } catch (ThrottleRequestsException $e) {
+            Log::warning('Limite de registro excedido', ['email' => $request->email, 'ip' => $request->ip()]);
+            return response()->json([
+                'message' => 'Muitas tentativas de registro. Aguarde alguns minutos e tente novamente.'
+            ], 429);
         } catch (ValidationException $e) {
             return response()->json(['errors' => $e->errors()], 422);
         } catch (\Exception $e) {
+            Log::error('Erro no registro', [
+                'email' => $request->email ?? 'desconhecido',
+                'ip' => $request->ip(),
+                'message' => $e->getMessage()
+            ]);
             return response()->json(['message' => 'Erro: ' . $e->getMessage()], 500);
         }
     }
